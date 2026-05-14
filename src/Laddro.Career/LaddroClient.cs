@@ -61,6 +61,9 @@ public class LaddroClient
     public Task<byte[]> TailorAsync(TailorRequest request) =>
         PostBinaryAsync("/v1/tailor", request);
 
+    public Task<BinaryResponse> TailorDetailedAsync(TailorRequest request) =>
+        PostBinaryDetailedAsync("/v1/tailor", request);
+
     public Task<byte[]> ExportPdfAsync(ExportRequest request) =>
         PostBinaryAsync("/v1/export", request);
 
@@ -75,6 +78,9 @@ public class LaddroClient
 
     public Task<byte[]> GenerateCoverLetterAsync(GenerateCoverLetterRequest request) =>
         PostBinaryAsync("/v1/cover-letters/generate", request);
+
+    public Task<BinaryResponse> GenerateCoverLetterDetailedAsync(GenerateCoverLetterRequest request) =>
+        PostBinaryDetailedAsync("/v1/cover-letters/generate", request);
 
     public Task<byte[]> RenderCoverLetterAsync(string id, RenderOptions options) =>
         PutBinaryAsync($"/v1/cover-letters/{id}/render", options);
@@ -111,6 +117,12 @@ public class LaddroClient
 
     private async Task<byte[]> PostBinaryAsync(string path, object body)
     {
+        var response = await PostBinaryDetailedAsync(path, body);
+        return response.Data;
+    }
+
+    private async Task<BinaryResponse> PostBinaryDetailedAsync(string path, object body)
+    {
         var request = new HttpRequestMessage(HttpMethod.Post, _baseUrl + path)
         {
             Content = JsonContent.Create(body, options: _json)
@@ -118,7 +130,10 @@ public class LaddroClient
         AddAuth(request);
         var response = await _http.SendAsync(request);
         await EnsureSuccess(response);
-        return await response.Content.ReadAsByteArrayAsync();
+        return new BinaryResponse(
+            await response.Content.ReadAsByteArrayAsync(),
+            ArtifactMetadataFrom(response)
+        );
     }
 
     private async Task<T> PutAsync<T>(string path, object body)
@@ -177,4 +192,19 @@ public class LaddroClient
     }
 
     private record ErrorBody(string? Error, string? Code);
+
+    private static ArtifactMetadata ArtifactMetadataFrom(HttpResponseMessage response)
+    {
+        var headers = response.Headers;
+        var contentHeaders = response.Content.Headers;
+        headers.TryGetValues("x-resume-id", out var resumeIds);
+        headers.TryGetValues("x-cover-letter-id", out var coverLetterIds);
+
+        return new ArtifactMetadata(
+            resumeIds?.FirstOrDefault(),
+            coverLetterIds?.FirstOrDefault(),
+            contentHeaders.ContentDisposition?.FileNameStar ?? contentHeaders.ContentDisposition?.FileName?.Trim('"'),
+            contentHeaders.ContentType?.MediaType
+        );
+    }
 }

@@ -1,5 +1,7 @@
 namespace Laddro.Career;
 
+public record ArtifactMetadata(string? ResumeId, string? CoverLetterId, string? Filename, string? MimeType);
+public record BinaryResponse(byte[] Data, ArtifactMetadata Metadata);
 public record ResumeSummary(string Id, string ResumeId, string Title, bool IsDefault, string CreatedAt, string UpdatedAt);
 public record PaginatedList<T>(List<T> Items, int Total, int Limit, int Offset);
 public record Template(string Id, string Name, int AtsScore, string LayoutType, bool SupportsProfileImage);
@@ -9,7 +11,7 @@ public record TemplateDetail(string Id, string Name, int AtsScore, string Layout
 public record Language(string Code, string Name);
 public record Model(string Id, string Name, bool Recommended);
 public record ModelProvider(string Provider, string Name, string BaseUrl, List<Model> Models, string KeyPrefix, string DocsUrl);
-public record CoverLetterSummary(string Id, string CoverLetterId, string Title, string CreatedAt, string UpdatedAt);
+public record CoverLetterSummary(string Id, string CoverLetterId, string Title, string CreatedAt, string UpdatedAt, string? LetterContent, Dictionary<string, object>? Data);
 public record CreateCoverLetterResponse(string CoverLetterId, string Title, string Status);
 public record AISettings(string Provider, string Model, string BaseUrl, bool HasApiKey, string? UpdatedAt);
 public record SettingsResponse(AISettings? Ai);
